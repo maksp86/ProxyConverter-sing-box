@@ -1,0 +1,116 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "GitHub release tag. Leave empty to only build artifacts."
+        required: false
+        type: string
+      prerelease:
+        description: "Publish release as prerelease."
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            runner: windows-latest
+            qt_version: "6.11.0"
+            qt_arch: win64_msvc2022_64
+            archive_name: proxy-converter-windows-x64.zip
+          - name: linux-x64
+            runner: ubuntu-24.04
+            qt_version: "6.11.0"
+            qt_arch: linux_gcc_64
+            archive_name: proxy-converter-linux-x64.tar.gz
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt_version }}
+          arch: ${{ matrix.qt_arch }}
+          cache: true
+          cache-key-prefix: proxy-converter-${{ matrix.name }}
+
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DPROXY_CONVERTER_HEADLESS=ON
+          -DPROXY_CONVERTER_SINGLE_BINARY=ON
+          -DPROXY_CONVERTER_BUNDLE_QT_RUNTIME=ON
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Install portable bundle
+        run: >
+          cmake --install build --config Release
+          --prefix "${{ github.workspace }}/deployment/${{ matrix.name }}"
+
+      - name: Archive bundle (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: >
+          Compress-Archive
+          -Path "${{ github.workspace }}\deployment\${{ matrix.name }}"
+          -DestinationPath "${{ github.workspace }}\${{ matrix.archive_name }}"
+          -Force
+
+      - name: Archive bundle (Linux)
+        if: runner.os == 'Linux'
+        run: >
+          tar -C "${{ github.workspace }}/deployment"
+          -czf "${{ github.workspace }}/${{ matrix.archive_name }}"
+          "${{ matrix.name }}"
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ github.workspace }}/${{ matrix.archive_name }}
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.tag != ''
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          prerelease: ${{ github.event.inputs.prerelease }}
+          files: release-assets/**/*

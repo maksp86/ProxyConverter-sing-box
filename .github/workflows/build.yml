@@ -50,7 +50,7 @@ jobs:
 
       - name: Install Qt (Linux)
         uses: jurplel/install-qt-action@v4.3.1
-        if: "!contains(matrix.platform, 'windows')"
+        if: "!contains(matrix.name, 'windows')"
         with:
           version: ${{ matrix.qt_version }}
           arch: ${{ matrix.qt_arch }}
@@ -60,7 +60,7 @@ jobs:
 
       - name: Install Qt (Windows)
         uses: jurplel/install-qt-action@v4.3.1
-        if: "contains(matrix.platform, 'windows')"
+        if: "contains(matrix.name, 'windows')"
         with:
           version: ${{ matrix.qt_version }}
           arch: ${{ matrix.qt_arch }}

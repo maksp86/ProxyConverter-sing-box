@@ -1,13 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 project(proxy_converter_throne LANGUAGES CXX)
 
-include(GNUInstallDirs)
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(PROXY_CONVERTER_HEADLESS "Build the converter without GUI-only Qt dependencies." ON)
-option(PROXY_CONVERTER_SINGLE_BINARY "Prefer a true single-file executable when a static Qt build is available." ON)
 option(PROXY_CONVERTER_STATIC_MSVC_RUNTIME "Link the MSVC runtime statically." ON)
 option(PROXY_CONVERTER_BUNDLE_QT_RUNTIME "Bundle Qt runtime files during install for portable artifacts." ON)
 
@@ -38,31 +35,29 @@ target_include_directories(proxy-converter PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${THRONE_ROOT}
-    ${THRONE_ROOT}/3rdparty
     ${CMAKE_BINARY_DIR})
 
 target_link_libraries(proxy-converter PRIVATE Qt6::Core Qt6::Network)
 
 install(TARGETS proxy-converter
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    RUNTIME DESTINATION .
     BUNDLE DESTINATION .)
 
 if (PROXY_CONVERTER_BUNDLE_QT_RUNTIME AND COMMAND qt_generate_deploy_app_script)
+    set(_deploy_opts NO_UNSUPPORTED_PLATFORM_ERROR)
+
+    if (MSVC AND PROXY_CONVERTER_STATIC_MSVC_RUNTIME)
+        list(APPEND _deploy_opts NO_COMPILER_RUNTIME)
+    endif()
+
     qt_generate_deploy_app_script(
         TARGET proxy-converter
         OUTPUT_SCRIPT proxy_converter_deploy_script
-        NO_UNSUPPORTED_PLATFORM_ERROR)
-    install(SCRIPT ${proxy_converter_deploy_script})
-endif()
+        ${_deploy_opts}
+        NO_TRANSLATIONS
+    )
 
-if (PROXY_CONVERTER_SINGLE_BINARY)
-    get_target_property(QT_CORE_TARGET_TYPE Qt6::Core TYPE)
-    if (NOT QT_CORE_TARGET_TYPE STREQUAL "STATIC_LIBRARY")
-        message(WARNING
-            "Single-file proxy-converter builds require a static Qt. "
-            "The current Qt6::Core target type is '${QT_CORE_TARGET_TYPE}', "
-            "so the produced executable will still depend on Qt runtime DLLs.")
-    endif()
+    install(SCRIPT ${proxy_converter_deploy_script})
 endif()
 
 set(CPACK_PACKAGE_NAME "proxy-converter")

@@ -49,10 +49,11 @@ jobs:
           arch: x64
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@v4.3.0
         with:
           version: ${{ matrix.qt_version }}
           arch: ${{ matrix.qt_arch }}
+          setup-python: true
           cache: true
           cache-key-prefix: proxy-converter-${{ matrix.name }}
 

@@ -48,8 +48,9 @@ jobs:
         with:
           arch: x64
 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4.3.0
+      - name: Install Qt (Linux)
+        uses: jurplel/install-qt-action@v4.3.1
+        if: "!contains(matrix.platform, 'windows')"
         with:
           version: ${{ matrix.qt_version }}
           arch: ${{ matrix.qt_arch }}
@@ -57,37 +58,44 @@ jobs:
           cache: true
           cache-key-prefix: proxy-converter-${{ matrix.name }}
 
+      - name: Install Qt (Windows)
+        uses: jurplel/install-qt-action@v4.3.1
+        if: "contains(matrix.platform, 'windows')"
+        with:
+          version: ${{ matrix.qt_version }}
+          arch: ${{ matrix.qt_arch }}
+          aqtsource: git+https://github.com/miurahr/aqtinstall.git@refs/pull/1000/head
+          setup-python: true
+          cache: true
+          cache-key-prefix: proxy-converter-${{ matrix.name }}
+
       - name: Configure
         run: >
-          cmake -S . -B build
-          -DPROXY_CONVERTER_HEADLESS=ON
+          cmake -S . -B build -DPROXY_CONVERTER_HEADLESS=ON
           -DPROXY_CONVERTER_SINGLE_BINARY=ON
-          -DPROXY_CONVERTER_BUNDLE_QT_RUNTIME=ON
-          -DCMAKE_BUILD_TYPE=Release
+          -DPROXY_CONVERTER_BUNDLE_QT_RUNTIME=ON -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --config Release --parallel
 
       - name: Install portable bundle
         run: >
-          cmake --install build --config Release
-          --prefix "${{ github.workspace }}/deployment/${{ matrix.name }}"
+          cmake --install build --config Release --prefix "${{ github.workspace
+          }}/deployment/${{ matrix.name }}"
 
       - name: Archive bundle (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: >
-          Compress-Archive
-          -Path "${{ github.workspace }}\deployment\${{ matrix.name }}"
-          -DestinationPath "${{ github.workspace }}\${{ matrix.archive_name }}"
-          -Force
+          Compress-Archive -Path "${{ github.workspace }}\deployment\${{
+          matrix.name }}" -DestinationPath "${{ github.workspace }}\${{
+          matrix.archive_name }}" -Force
 
       - name: Archive bundle (Linux)
         if: runner.os == 'Linux'
         run: >
-          tar -C "${{ github.workspace }}/deployment"
-          -czf "${{ github.workspace }}/${{ matrix.archive_name }}"
-          "${{ matrix.name }}"
+          tar -C "${{ github.workspace }}/deployment" -czf "${{ github.workspace
+          }}/${{ matrix.archive_name }}" "${{ matrix.name }}"
 
       - name: Upload archive
         uses: actions/upload-artifact@v4

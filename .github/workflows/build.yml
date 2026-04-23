@@ -32,7 +32,7 @@ jobs:
             runner: ubuntu-24.04
             qt_version: "6.11.0"
             qt_arch: linux_gcc_64
-            archive_name: proxy-converter-linux-x64.tar.gz
+            archive_name: proxy-converter-linux-x64.zip # Изменено с .tar.gz на .zip
 
     runs-on: ${{ matrix.runner }}
 
@@ -87,15 +87,12 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: >
-          Compress-Archive -Path "${{ github.workspace }}\deployment\${{
-          matrix.name }}" -DestinationPath "${{ github.workspace }}\${{
-          matrix.archive_name }}" -Force
+          Compress-Archive -Path "${{ github.workspace }}\deployment\${{ matrix.name }}\*" -DestinationPath "${{ github.workspace }}\${{ matrix.archive_name }}" -Force
 
       - name: Archive bundle (Linux)
         if: runner.os == 'Linux'
         run: >
-          tar -C "${{ github.workspace }}/deployment" -czf "${{ github.workspace
-          }}/${{ matrix.archive_name }}" "${{ matrix.name }}"
+          cd "${{ github.workspace }}/deployment/${{ matrix.name }}" && zip -r "${{ github.workspace }}/${{ matrix.archive_name }}" .
 
       - name: Upload archive
         uses: actions/upload-artifact@v4

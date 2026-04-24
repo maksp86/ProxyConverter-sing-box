@@ -6,33 +6,36 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "GitHub release tag. Leave empty to only build artifacts."
+        description: "Release tag"
         required: false
         type: string
-      prerelease:
-        description: "Publish release as prerelease."
+      publish:
+        description: "Set r for release, p for prerelease, leave empty to skip publishing"
         required: false
-        default: false
-        type: boolean
+        default: ""
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    permissions:
-      contents: read
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: windows-x64
             runner: windows-latest
+            os: windows
             qt_version: "6.11.0"
-            qt_arch: win64_msvc2022_64
-            archive_name: proxy-converter-windows-x64.zip
-          - name: linux-x64
+            qt_arch: x64
+            archive_name: proxy-converter-windows-x64.7z
+          - name: linux-x64-portable
             runner: ubuntu-24.04
+            os: linux
             qt_version: "6.11.0"
             qt_arch: linux_gcc_64
-            archive_name: proxy-converter-linux-x64.zip # Изменено с .tar.gz на .zip
+            archive_name: proxy-converter-linux-x64.zip
 
     runs-on: ${{ matrix.runner }}
 
@@ -43,14 +46,14 @@ jobs:
           submodules: recursive
 
       - name: Set up MSVC
-        if: runner.os == 'Windows'
+        if: matrix.os == 'windows'
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
 
       - name: Install Qt (Linux)
+        if: matrix.os == 'linux'
         uses: jurplel/install-qt-action@v4.3.1
-        if: "!contains(matrix.name, 'windows')"
         with:
           version: ${{ matrix.qt_version }}
           arch: ${{ matrix.qt_arch }}
@@ -58,65 +61,61 @@ jobs:
           cache: true
           cache-key-prefix: proxy-converter-${{ matrix.name }}
 
-      - name: Install Qt (Windows)
-        uses: jurplel/install-qt-action@v4.3.1
-        if: "contains(matrix.name, 'windows')"
-        with:
-          version: ${{ matrix.qt_version }}
-          arch: ${{ matrix.qt_arch }}
-          aqtsource: git+https://github.com/miurahr/aqtinstall.git@refs/pull/1000/head
-          setup-python: true
-          cache: true
-          cache-key-prefix: proxy-converter-${{ matrix.name }}
+      - name: Download static Qt (Windows)
+        if: matrix.os == 'windows'
+        shell: bash
+        run: |
+          curl -L -o qt.7z "https://github.com/throneproj/buildqt/releases/download/Qt_${{ matrix.qt_version }}/Qt_${{ matrix.qt_version }}_${{ matrix.qt_arch }}.7z"
+          7z x qt.7z -oQt
 
       - name: Configure
-        run: >
-          cmake -S . -B build -DPROXY_CONVERTER_HEADLESS=ON
-          -DPROXY_CONVERTER_SINGLE_BINARY=ON
-          -DPROXY_CONVERTER_BUNDLE_QT_RUNTIME=ON -DCMAKE_BUILD_TYPE=Release
+        shell: bash
+        run: |
+          mkdir -p build
+
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            export CMAKE_PREFIX_PATH="$PWD/Qt/lib/cmake"
+            cmake -S . -B build -G Ninja \
+              -DPROXY_CONVERTER_HEADLESS=ON \
+              -DPROXY_CONVERTER_SINGLE_BINARY=ON \
+              -DPROXY_CONVERTER_STATIC_MSVC_RUNTIME=ON \
+              -DPROXY_CONVERTER_BUNDLE_QT_RUNTIME=OFF \
+              -DCMAKE_BUILD_TYPE=Release
+          else
+            cmake -S . -B build -G Ninja \
+              -DPROXY_CONVERTER_HEADLESS=ON \
+              -DPROXY_CONVERTER_SINGLE_BINARY=OFF \
+              -DPROXY_CONVERTER_BUNDLE_QT_RUNTIME=ON \
+              -DCMAKE_BUILD_TYPE=Release
+          fi
 
       - name: Build
-        run: cmake --build build --config Release --parallel
+        shell: bash
+        run: cmake --build build --parallel
 
-      - name: Install portable bundle
-        run: >
-          cmake --install build --config Release --prefix "${{ github.workspace
-          }}/deployment/${{ matrix.name }}"
+      - name: Install
+        shell: bash
+        run: |
+          cmake --install build --prefix "${{ github.workspace }}/deployment/${{ matrix.name }}"
 
-      - name: Archive bundle (Windows)
-        if: runner.os == 'Windows'
+      - name: Package Windows
+        if: matrix.os == 'windows'
         shell: pwsh
-        run: >
-          Compress-Archive -Path "${{ github.workspace }}\deployment\${{ matrix.name }}\*" -DestinationPath "${{ github.workspace }}\${{ matrix.archive_name }}" -Force
+        run: |
+          Compress-Archive `
+            -Path "${{ github.workspace }}\deployment\${{ matrix.name }}\*" `
+            -DestinationPath "${{ github.workspace }}\${{ matrix.archive_name }}" `
+            -Force
 
-      - name: Archive bundle (Linux)
-        if: runner.os == 'Linux'
-        run: >
-          cd "${{ github.workspace }}/deployment/${{ matrix.name }}" && zip -r "${{ github.workspace }}/${{ matrix.archive_name }}" .
+      - name: Package Linux
+        if: matrix.os == 'linux'
+        shell: bash
+        run: |
+          cd "${{ github.workspace }}/deployment/${{ matrix.name }}"
+          zip -r "${{ github.workspace }}/${{ matrix.archive_name }}" .
 
       - name: Upload archive
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
           path: ${{ github.workspace }}/${{ matrix.archive_name }}
-
-  publish:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.tag != ''
-    needs:
-      - build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Download packaged artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release-assets
-
-      - name: Publish release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.event.inputs.tag }}
-          prerelease: ${{ github.event.inputs.prerelease }}
-          files: release-assets/**/*

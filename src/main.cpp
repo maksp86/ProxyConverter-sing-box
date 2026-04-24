@@ -10,7 +10,6 @@
 #include <QTextStream>
 
 #include "include/configs/common/utils.h"
-#include "include/global/Configs.hpp"
 #include "include/database/entities/Profile.h"
 
 namespace {
@@ -51,7 +50,6 @@ namespace {
         else if (type == "shadowsocks") out = new shadowsocks();
         else if (type == "vmess") out = new vmess();
         else if (type == "vless") out = new vless();
-        else if (type == "xrayvless") out = new xrayVless();
         else if (type == "trojan") out = new Trojan();
         else if (type == "anytls") out = new anyTLS();
         else if (type == "hysteria") out = new hysteria();
@@ -65,13 +63,6 @@ namespace {
         else out = new outbound();
 
         return std::make_shared<Profile>(out, type);
-    }
-
-    bool preferXrayVless(const QString& link) {
-        auto url = QUrl(link);
-        if (!url.isValid()) return false;
-        auto q = QUrlQuery(url.query());
-        return q.queryItemValue("type") == "xhttp" || q.queryItemValue("security") == "reality";
     }
 
     std::shared_ptr<Configs::Profile> parseSingle(const QString& raw) {
@@ -193,11 +184,6 @@ namespace {
 
 int main(int argc, char* argv[]) {
     QCoreApplication app(argc, argv);
-
-    Configs::DatabaseManager cliSettings;
-    Configs::dataManager = &cliSettings;
-    MW_show_log = [](QString) {};
-    MW_dialog_message = [](QString, QString) {};
 
     const CliOptions opts = parseArgs(app);
     const auto inputs = collectInputs(opts);

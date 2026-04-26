@@ -7,11 +7,6 @@ mkdir -p $DEST
 #### copy binary ####
 cp $GITHUB_WORKSPACE/build/proxy-converter $DEST
 
-cd download-artifact
-cd *$DEST_SUFFIX
-tar xvzf artifacts.tgz -C ../../
-cd ../..
-
 sudo add-apt-repository universe
 sudo apt install libfuse2
 sudo apt install patchelf

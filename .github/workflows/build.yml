@@ -28,20 +28,20 @@ jobs:
             target: x64
             dest_suffix: windows-amd64
 
-          - platform: windows-11-arm
-            qt_version: "6.11.0"
-            target: arm64
-            dest_suffix: windows-arm64
+          # - platform: windows-11-arm
+          #   qt_version: "6.11.0"
+          #   target: arm64
+          #   dest_suffix: windows-arm64
 
           - platform: ubuntu-22.04
             qt_version: "6.11.0"
             target: x86_64
             dest_suffix: linux-amd64
 
-          - platform: ubuntu-24.04-arm
-            qt_version: "6.11.0"
-            target: aarch64
-            dest_suffix: linux-arm64
+          # - platform: ubuntu-24.04-arm
+          #   qt_version: "6.11.0"
+          #   target: aarch64
+          #   dest_suffix: linux-arm64
     runs-on: ${{ matrix.platform }}
 
     env:
@@ -78,14 +78,13 @@ jobs:
         if: contains(matrix.platform, 'windows')
         shell: bash
         run: |
-          curl -L -o qt.7z "https://github.com/throneproj/buildqt/releases/download/Qt_${{ matrix.qt_version }}/Qt_${{ matrix.qt_version }}_${{ matrix.qt_arch }}.7z"
+          curl -L -o qt.7z https://github.com/throneproj/buildqt/releases/download/Qt_${{ matrix.qt_version }}/Qt_${{ matrix.qt_version }}_${{ matrix.target }}.7z
           7z x qt.7z
-          export CMAKE_PREFIX_PATH="$PWD/Qt/Qt/lib/cmake"
+          export CMAKE_PREFIX_PATH="$PWD/Qt/lib/cmake"
           mkdir -p build
           cd build
 
-          cmake -G Ninja \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+          cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
           ninja
 
           rm -rf $DEST
@@ -100,9 +99,7 @@ jobs:
           mkdir -p build
           cd build
 
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo
-            -DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" ..
+          cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" ..
           ninja
           
           cd ..

@@ -121,7 +121,7 @@ jobs:
     name: Pack & Publish Release
     runs-on: ubuntu-latest
     needs:
-      - build-cpp
+      - build
     permissions:
       contents: write
       actions: read

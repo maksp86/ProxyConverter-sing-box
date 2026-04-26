@@ -85,10 +85,6 @@ jobs:
           cd build
 
           cmake -G Ninja \
-            -DPROXY_CONVERTER_HEADLESS=ON \
-            -DPROXY_CONVERTER_SINGLE_BINARY=ON \
-            -DPROXY_CONVERTER_STATIC_MSVC_RUNTIME=ON \
-            -DPROXY_CONVERTER_BUNDLE_QT_RUNTIME=OFF \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
           ninja
 
@@ -105,9 +101,6 @@ jobs:
           cd build
 
           cmake -S . -B build -G Ninja \
-            -DPROXY_CONVERTER_HEADLESS=ON \
-            -DPROXY_CONVERTER_SINGLE_BINARY=OFF \
-            -DPROXY_CONVERTER_BUNDLE_QT_RUNTIME=ON \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo
             -DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" ..
           ninja

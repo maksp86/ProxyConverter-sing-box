@@ -42,6 +42,8 @@ qt_add_executable(proxy-converter
     MANUAL_FINALIZATION
     ${PROJECT_SOURCES})
 
+target_compile_definitions(proxy-converter PRIVATE THRONE_CLI_HEADLESS)
+
 target_include_directories(proxy-converter PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include

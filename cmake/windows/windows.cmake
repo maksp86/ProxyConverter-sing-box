@@ -1,3 +1,4 @@
+set(PLATFORM_LIBRARIES wininet wsock32 ws2_32 user32 rasapi32 iphlpapi ntdll wbemuuid)
 include(cmake/windows/generate_product_version.cmake)
 generate_product_version(
         NAME "proxy-converter"

@@ -78,7 +78,7 @@ jobs:
         if: contains(matrix.platform, 'windows')
         shell: bash
         run: |
-          curl -L -o qt.7z "https://github.com/throneproj/buildqt/releases/download/Qt_${{ matrix.qt_version }}/Qt_${{ matrix.qt_version }}_${{ matrix.qt_arch }}.7z"
+          curl -L -o qt.7z https://github.com/throneproj/buildqt/releases/download/Qt_${{ matrix.qt_version }}/Qt_${{ matrix.qt_version }}_${{ matrix.target }}.7z
           7z x qt.7z
           export CMAKE_PREFIX_PATH="$PWD/Qt/Qt/lib/cmake"
           mkdir -p build
@@ -100,7 +100,7 @@ jobs:
           mkdir -p build
           cd build
 
-          cmake -S . -B build -G Ninja \
+          cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo
             -DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" ..
           ninja

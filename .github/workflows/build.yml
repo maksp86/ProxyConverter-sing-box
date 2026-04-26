@@ -63,6 +63,11 @@ jobs:
         with:
           arch: x64
 
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4.3.0
+        with:
+          path: download-artifact
+
       - name: Install Qt
         if: "!contains(matrix.platform, 'windows')"
         uses: jurplel/install-qt-action@v4.3.1
@@ -82,7 +87,7 @@ jobs:
           7z x qt.7z
           curl -L -o openssl.7z https://github.com/throneproj/env_windows_legacy/releases/download/latest/openssl_${{ matrix.target }}.7z
           7z x openssl.7z
-          
+
           export CMAKE_PREFIX_PATH="$PWD/Qt/lib/cmake"
           export OPENSSL_ROOT_DIR=$PWD/openssl
           mkdir -p build

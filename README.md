@@ -1,3 +1,8 @@
+# [ProxyConverter](https://github.com/maksp86/ProxyConverter) - much more stable version based on [v2RayN](https://github.com/2dust/v2rayN)
+#  
+#  
+  
+  
 # ProxyConverter-sing-box (Throne-based)
 
 A C++ proxy-link converter that reuses parsing and conversion logic from [Throne](https://github.com/throneproj/Throne).
